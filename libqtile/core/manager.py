@@ -98,6 +98,7 @@ class Qtile(CommandObject):
 
         self.keys_map: Dict[Tuple[int, int], Union[Key, KeyChord]] = {}
         self.chord_stack: List[KeyChord] = []
+        self.last_key_mask = 0x0
 
         self.screens: List[Screen] = []
 
@@ -343,7 +344,9 @@ class Qtile(CommandObject):
     ) -> None:
         self.core.painter.paint(screen, image_path, mode)
 
-    def process_key_event(self, keysym: int, mask: int) -> None:
+    def process_key_event(self, keysym: int, mask: int, is_release: bool = False,
+                          key_as_modifier: int = 0) -> None:
+        last_key_mask, self.last_key_mask = self.last_key_mask, mask
         key = self.keys_map.get((keysym, mask), None)
         if key is None:
             logger.debug("Ignoring unknown keysym: {keysym}, mask: {mask}".format(keysym=keysym, mask=mask))
@@ -352,6 +355,14 @@ class Qtile(CommandObject):
         if isinstance(key, KeyChord):
             self.grab_chord(key)
         else:
+            if key.on_release != is_release:
+                return
+            if key_as_modifier and key.on_release and last_key_mask & key_as_modifier:
+                # quick fix for on_release keys:
+                # When using a modifier key like Super_L as a regular key,
+                # it should not be triggered when released as the last key of a
+                # sequence of modifiers / keys.
+                return
             for cmd in key.commands:
                 if cmd.check(self):
                     status, val = self.server.call(

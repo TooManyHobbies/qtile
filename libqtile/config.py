@@ -60,11 +60,13 @@ class Key:
     desc:
         description to be added to the key binding
     """
-    def __init__(self, modifiers: List[str], key: str, *commands, desc: str = ""):
+    def __init__(self, modifiers: List[str], key: str, *commands, desc: str = "",
+                 on_release: bool = False):
         self.modifiers = modifiers
         self.key = key
         self.commands = commands
         self.desc = desc
+        self.on_release = on_release
 
     def __repr__(self):
         return "<Key (%s, %s)>" % (self.modifiers, self.key)
